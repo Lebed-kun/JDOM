@@ -26,8 +26,8 @@ const h = (type, attrs, ...children) => {
   return {
     type,
     props: normProps,
-    key: attrs.key || null,
-    ref: attrs.ref || null
+    key: attrs && attrs.key ? attrs.key : null,
+    ref: attrs && attrs.ref ? attrs.ref : null
   };
 };
 
