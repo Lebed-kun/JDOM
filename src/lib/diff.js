@@ -10,11 +10,19 @@ import { setAttribute, removeAttribute } from "./props";
  * @param {VNode} oldTree
  * @param {Array<Function>} taskQueue
  * @param {number?} idx Index of current container's child
+ * @param {boolean?} hydrate
  * @returns {"INSERT"|"REMOVE"|"REPLACE"|undefined}
  */
-const diffElement = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
+const diffElement = (
+  $parent,
+  newTree,
+  oldTree,
+  taskQueue,
+  idx = 0,
+  hydrate = false
+) => {
   // Look for old tree
-  if (isEmpty(oldTree) && isText(newTree)) {
+  if (!hydrate && isEmpty(oldTree) && isText(newTree)) {
     taskQueue.push(() => {
       const newElement = document.createTextNode(newTree);
       $parent.insertBefore(newElement, $parent.childNodes[idx]);
@@ -22,7 +30,7 @@ const diffElement = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
     return "INSERT";
   }
   if (isEmpty(oldTree) && isVElement(newTree)) {
-    if (typeof newTree.type === "string") {
+    if (!hydrate && typeof newTree.type === "string") {
       taskQueue.push(() => {
         const newElement = document.createElement(newTree.type);
         $parent.insertBefore(newElement, $parent.childNodes[idx]);
@@ -55,7 +63,7 @@ const diffElement = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
   const newTreeType = nodeType(newTree);
   const oldTreeType = nodeType(oldTree);
 
-  if (newTreeType !== oldTreeType && isText(newTree)) {
+  if (!hydrate && newTreeType !== oldTreeType && isText(newTree)) {
     taskQueue.push(() => {
       const newElement = document.createTextNode(newTree);
       $parent.replaceChild(newElement, $parent.childNodes[idx]);
@@ -63,7 +71,7 @@ const diffElement = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
     return "REPLACE";
   }
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
-    if (typeof newTree.type === "string") {
+    if (!hydrate && typeof newTree.type === "string") {
       taskQueue.push(() => {
         const newElement = document.createElement(newTree.type);
         $parent.replaceChild(newElement, $parent.childNodes[idx]);
@@ -73,15 +81,14 @@ const diffElement = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
       // TODO: add task for functional component
     }
   }
-  if (newTreeType === "text" && newTree !== oldTree) {
+  if (!hydrate && newTreeType === "text" && newTree !== oldTree) {
     taskQueue.push(() => {
-      const newElement = document.createTextNode(newTree);
-      $parent.replaceChild(newElement, $parent.childNodes[idx]);
+      $parent.childNodes[idx].nodeValue = newTree;
     });
     return "REPLACE";
   }
   if (newTreeType === "velement" && newTree.type !== oldTree.type) {
-    if (typeof newTree.type === "string") {
+    if (!hydrate && typeof newTree.type === "string") {
       taskQueue.push(() => {
         const newElement = document.createElement(newTree.type);
         $parent.replaceChild(newElement, $parent.childNodes[idx]);
@@ -99,8 +106,16 @@ const diffElement = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
  * @param {VNode} oldTree
  * @param {Array<Function>} taskQueue
  * @param {number?} idx Index of current container's child
+ * @param {boolean?} hydrate
  */
-const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
+const diffProps = (
+  $parent,
+  newTree,
+  oldTree,
+  taskQueue,
+  idx = 0,
+  hydrate = false
+) => {
   const newProps = isVElement(newTree)
     ? filter(newTree.props, (_, name) => name !== "children")
     : null;
@@ -110,6 +125,16 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
 
   // Look for old tree
   if (isEmpty(oldTree) && isVElement(newTree)) {
+    if (hydrate && typeof newTree.type === "string") {
+      const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
+      forEach(evtHandlers, (value, name) => {
+        taskQueue.push(() => {
+          setAttribute($parent.childNodes[idx], name, value);
+        });
+      });
+      return;
+    }
+
     if (typeof newTree.type === "string") {
       forEach(newProps, (value, name) => {
         taskQueue.push(() => {
@@ -127,6 +152,16 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
   const oldTreeType = nodeType(oldTree);
 
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
+    if (hydrate && typeof newTree.type === "string") {
+      const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
+      forEach(evtHandlers, (value, name) => {
+        taskQueue.push(() => {
+          setAttribute($parent.childNodes[idx], name, value);
+        });
+      });
+      return;
+    }
+
     if (typeof newTree.type === "string") {
       forEach(newProps, (value, name) => {
         taskQueue.push(() => {
@@ -139,6 +174,16 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
     }
   }
   if (newTreeType === "velement") {
+    if (hydrate && typeof newTree.type === "string") {
+      const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
+      forEach(evtHandlers, (value, name) => {
+        taskQueue.push(() => {
+          setAttribute($parent.childNodes[idx], name, value);
+        });
+      });
+      return;
+    }
+
     if (typeof newTree.type === "string") {
       // Look for old props
       forEach(oldProps, (_, name) => {
@@ -170,8 +215,16 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
  * @param {VNode} oldTree
  * @param {Array<Function>} taskQueue
  * @param {number?} idx
+ * @param {boolean?} hydrate
  */
-const diffChildren = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
+const diffChildren = (
+  $parent,
+  newTree,
+  oldTree,
+  taskQueue,
+  idx = 0,
+  hydrate = false
+) => {
   const newChildren = isVElement(newTree) ? newTree.props.children : null;
   const oldChildren = isVElement(oldTree) ? oldTree.props.children : null;
 
@@ -180,7 +233,7 @@ const diffChildren = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
     if (typeof newTree.type === "string" && newChildren) {
       newChildren.forEach((el, id) => {
         taskQueue.push(() => {
-          diff($parent.childNodes[idx], el, null, taskQueue, id);
+          diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
         });
       });
     } else {
@@ -196,7 +249,7 @@ const diffChildren = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
     if (typeof newTree.type === "string" && newChildren) {
       newChildren.forEach((el, id) => {
         taskQueue.push(() => {
-          diff($parent.childNodes[idx], el, null, taskQueue, id);
+          diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
         });
       });
     } else {
@@ -210,7 +263,14 @@ const diffChildren = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
       // Look for old children
       oldChildren.forEach((el, id) => {
         taskQueue.push(() => {
-          diff($parent.childNodes[idx], newChildren[id], el, taskQueue, id);
+          diff(
+            $parent.childNodes[idx],
+            newChildren[id],
+            el,
+            taskQueue,
+            id,
+            hydrate
+          );
         });
       });
       // Look for new children
@@ -218,7 +278,7 @@ const diffChildren = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
         (el, id) =>
           id >= minChdCount &&
           taskQueue.push(() => {
-            diff($parent.childNodes[idx], el, null, taskQueue, id);
+            diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
           })
       );
     } else {
@@ -233,12 +293,29 @@ const diffChildren = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
  * @param {VNode} oldTree
  * @param {Array<Function>} taskQueue
  * @param {number?} idx
+ * @param {boolean?} hydrate
  */
-const diff = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
-  const status = diffElement($parent, newTree, oldTree, taskQueue, idx);
+const diff = (
+  $parent,
+  newTree,
+  oldTree,
+  taskQueue,
+  idx = 0,
+  hydrate = false
+) => {
+  const status = diffElement(
+    $parent,
+    newTree,
+    oldTree,
+    taskQueue,
+    idx,
+    hydrate
+  );
 
   if (status !== "REMOVE") {
-    diffProps($parent, newTree, oldTree, taskQueue, idx);
+    diffProps($parent, newTree, oldTree, taskQueue, idx, hydrate);
     diffChildren($parent, newTree, oldTree, taskQueue, idx);
   }
 };
+
+export default diff;
