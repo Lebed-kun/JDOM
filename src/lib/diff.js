@@ -113,7 +113,7 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
     if (typeof newTree.type === "string") {
       forEach(newProps, (value, name) => {
         taskQueue.push(() => {
-          setAttribute($parent.children[idx], name, value);
+          setAttribute($parent.childNodes[idx], name, value);
         });
       });
       return;
@@ -130,7 +130,7 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
     if (typeof newTree.type === "string") {
       forEach(newProps, (value, name) => {
         taskQueue.push(() => {
-          setAttribute($parent.children[idx], name, value);
+          setAttribute($parent.childNodes[idx], name, value);
         });
       });
       return;
@@ -144,7 +144,7 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
       forEach(oldProps, (_, name) => {
         if (isEmpty(newProps[name]) && newProps[name] !== true) {
           taskQueue.push(() => {
-            removeAttribute($parent.children[idx], name);
+            removeAttribute($parent.childNodes[idx], name);
           });
         }
       });
@@ -153,7 +153,7 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
       forEach(newProps, (value, name) => {
         if (value !== oldProps[name]) {
           taskQueue.push(() => {
-            setAttribute($parent.children[idx], name, value);
+            setAttribute($parent.childNodes[idx], name, value);
           });
         }
       });
@@ -171,10 +171,74 @@ const diffProps = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
  * @param {Array<Function>} taskQueue
  * @param {number?} idx
  */
+const diffChildren = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
+  const newChildren = isVElement(newTree) ? newTree.props.children : null;
+  const oldChildren = isVElement(oldTree) ? oldTree.props.children : null;
+
+  // Look for old tree
+  if (isEmpty(oldTree) && isVElement(newTree)) {
+    if (typeof newTree.type === "string" && newChildren) {
+      newChildren.forEach((el, id) => {
+        taskQueue.push(() => {
+          diff($parent.childNodes[idx], el, null, taskQueue, id);
+        });
+      });
+    } else {
+      // TODO : scheduling tasks for functional components
+    }
+  }
+
+  // Compare two trees
+  const newTreeType = nodeType(newTree);
+  const oldTreeType = nodeType(oldTree);
+
+  if (newTreeType !== oldTreeType && isVElement(newTree)) {
+    if (typeof newTree.type === "string" && newChildren) {
+      newChildren.forEach((el, id) => {
+        taskQueue.push(() => {
+          diff($parent.childNodes[idx], el, null, taskQueue, id);
+        });
+      });
+    } else {
+      // TODO : scheduling tasks for functional components
+    }
+  }
+  if (newTreeType === "velement") {
+    if (typeof newTree.type === "string") {
+      // To compare pairs of existent nodes
+      const minChdCount = Math.min(newChildren.length, oldChildren.length);
+      // Look for old children
+      oldChildren.forEach((el, id) => {
+        taskQueue.push(() => {
+          diff($parent.childNodes[idx], newChildren[id], el, taskQueue, id);
+        });
+      });
+      // Look for new children
+      newChildren.forEach(
+        (el, id) =>
+          id >= minChdCount &&
+          taskQueue.push(() => {
+            diff($parent.childNodes[idx], el, null, taskQueue, id);
+          })
+      );
+    } else {
+      // TODO : scheduling tasks for functional components
+    }
+  }
+};
+
+/**
+ * @param {Node} $parent
+ * @param {VNode} newTree
+ * @param {VNode} oldTree
+ * @param {Array<Function>} taskQueue
+ * @param {number?} idx
+ */
 const diff = ($parent, newTree, oldTree, taskQueue, idx = 0) => {
   const status = diffElement($parent, newTree, oldTree, taskQueue, idx);
 
   if (status !== "REMOVE") {
     diffProps($parent, newTree, oldTree, taskQueue, idx);
+    diffChildren($parent, newTree, oldTree, taskQueue, idx);
   }
 };
