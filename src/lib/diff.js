@@ -236,6 +236,7 @@ const diffChildren = (
           diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
         });
       });
+      return;
     } else {
       // TODO : scheduling tasks for functional components
     }
@@ -252,16 +253,20 @@ const diffChildren = (
           diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
         });
       });
+      return;
     } else {
       // TODO : scheduling tasks for functional components
     }
   }
   if (newTreeType === "velement") {
-    if (typeof newTree.type === "string") {
+    if (typeof newTree.type === "string" && newChildren) {
       // To compare pairs of existent nodes
-      const minChdCount = Math.min(newChildren.length, oldChildren.length);
+      const minChdCount = Math.min(
+        newChildren ? newChildren.length : 0,
+        oldChildren ? oldChildren.length : 0
+      );
       // Look for old children
-      oldChildren.forEach((el, id) => {
+      (oldChildren || []).forEach((el, id) => {
         taskQueue.push(() => {
           diff(
             $parent.childNodes[idx],
@@ -274,13 +279,14 @@ const diffChildren = (
         });
       });
       // Look for new children
-      newChildren.forEach(
+      (newChildren || []).forEach(
         (el, id) =>
           id >= minChdCount &&
           taskQueue.push(() => {
             diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
           })
       );
+      return;
     } else {
       // TODO : scheduling tasks for functional components
     }

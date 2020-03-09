@@ -4,11 +4,14 @@ export const resolveQueue = () => taskQueue;
 export const resetQueue = () => (taskQueue = []);
 
 const commitWork = () => {
-  for (let i = 0; i < taskQueue.length; i++) {
-    setTimeout(taskQueue[i]);
-  }
+  let i = 0;
 
-  return true;
+  const performTask = () => {
+    taskQueue[i]();
+    if (++i < taskQueue.length) setTimeout(performTask);
+  };
+
+  setTimeout(performTask);
 };
 
 export default commitWork;
