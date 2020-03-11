@@ -320,7 +320,7 @@ const diff = (
 
   if (status !== "REMOVE") {
     diffProps($parent, newTree, oldTree, taskQueue, idx, hydrate);
-    diffChildren($parent, newTree, oldTree, taskQueue, idx);
+    diffChildren($parent, newTree, oldTree, taskQueue, idx, hydrate);
   }
 };
 

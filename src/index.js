@@ -34,4 +34,3 @@ render(
   App("JDOM with render effect", "RENDER"),
   document.getElementById("app2")
 );
-render(App("JDOM"), document.getElementById("app3"));
