@@ -1,6 +1,34 @@
 import { isEmpty, isText, isVElement, nodeType } from "./vnode";
 import { forEach, filter } from "./utils";
 import { setAttribute, removeAttribute } from "./props";
+
+const elementActions = {
+  INSERT: ($parent, newTree, taskQueue, idx = 0) => {
+    taskQueue.push(() => {
+      const newElement = isText(newTree)
+        ? document.createTextNode(newTree)
+        : document.createElement(newTree.type);
+      $parent.insertBefore(newElement, $parent.childNodes[idx]);
+    });
+    return "INSERT";
+  },
+  REMOVE: ($parent, taskQueue, idx = 0) => {
+    taskQueue.push(() => {
+      $parent.removeChild($parent.childNodes[idx]);
+    });
+    return "REMOVE";
+  },
+  REPLACE: ($parent, newTree, taskQueue, idx = 0) => {
+    taskQueue.push(() => {
+      const newElement = isText(newTree)
+        ? document.createTextNode(newTree)
+        : document.createElement(newTree.type);
+      $parent.replaceChild(newElement, $parent.childNodes[idx]);
+    });
+    return "REPLACE";
+  }
+};
+
 /**
  * @typedef {import('./vnode').VNode} VNode
  *
@@ -22,19 +50,11 @@ const diffElement = (
 ) => {
   // Look for old tree
   if (!hydrate && isEmpty(oldTree) && isText(newTree)) {
-    taskQueue.push(() => {
-      const newElement = document.createTextNode(newTree);
-      $parent.insertBefore(newElement, $parent.childNodes[idx]);
-    });
-    return "INSERT";
+    return elementActions["INSERT"]($parent, newTree, taskQueue, idx);
   }
   if (isEmpty(oldTree) && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
-      taskQueue.push(() => {
-        const newElement = document.createElement(newTree.type);
-        $parent.insertBefore(newElement, $parent.childNodes[idx]);
-      });
-      return "INSERT";
+      return elementActions["INSERT"]($parent, newTree, taskQueue, idx);
     } else {
       // TODO: add task for functional component
     }
@@ -42,17 +62,11 @@ const diffElement = (
 
   // Look for new tree
   if (isEmpty(newTree) && isText(oldTree)) {
-    taskQueue.push(() => {
-      $parent.removeChild($parent.childNodes[idx]);
-    });
-    return "REMOVE";
+    return elementActions["REMOVE"]($parent, taskQueue, idx);
   }
   if (isEmpty(newTree) && isVElement(oldTree)) {
     if (typeof oldTree.type === "string") {
-      taskQueue.push(() => {
-        $parent.removeChild($parent.childNodes[idx]);
-      });
-      return "REMOVE";
+      return elementActions["REMOVE"]($parent, taskQueue, idx);
     } else {
       // TODO: add task for functional component
     }
@@ -63,19 +77,11 @@ const diffElement = (
   const oldTreeType = nodeType(oldTree);
 
   if (!hydrate && newTreeType !== oldTreeType && isText(newTree)) {
-    taskQueue.push(() => {
-      const newElement = document.createTextNode(newTree);
-      $parent.replaceChild(newElement, $parent.childNodes[idx]);
-    });
-    return "REPLACE";
+    return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
   }
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
-      taskQueue.push(() => {
-        const newElement = document.createElement(newTree.type);
-        $parent.replaceChild(newElement, $parent.childNodes[idx]);
-      });
-      return "REPLACE";
+      return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
     } else {
       // TODO: add task for functional component
     }
@@ -91,11 +97,7 @@ const diffElement = (
     (hydrate || newTree.type !== oldTree.type)
   ) {
     if (!hydrate && typeof newTree.type === "string") {
-      taskQueue.push(() => {
-        const newElement = document.createElement(newTree.type);
-        $parent.replaceChild(newElement, $parent.childNodes[idx]);
-      });
-      return "REPLACE";
+      return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
     } else {
       // TODO: add task for functional component
     }
