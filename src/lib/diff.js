@@ -10,13 +10,13 @@ const elementActions = {
         : document.createElement(newTree.type);
       $parent.insertBefore(newElement, $parent.childNodes[idx]);
     });
-    return "INSERT";
+    return ["INSERT", newTree];
   },
   REMOVE: ($parent, taskQueue, idx = 0) => {
     taskQueue.push(() => {
       $parent.removeChild($parent.childNodes[idx]);
     });
-    return "REMOVE";
+    return ["REMOVE", null];
   },
   REPLACE: ($parent, newTree, taskQueue, idx = 0) => {
     taskQueue.push(() => {
@@ -25,20 +25,14 @@ const elementActions = {
         : document.createElement(newTree.type);
       $parent.replaceChild(newElement, $parent.childNodes[idx]);
     });
-    return "REPLACE";
+    return ["REPLACE", newTree];
   },
   FUNC_COMP: ($parent, newTree, oldTree, taskQueue, idx, hydrate) => {
+    const tree = !isEmpty(newTree) ? newTree.type(newTree.props) : null;
     taskQueue.push(() => {
-      diff(
-        $parent,
-        newTree ? newTree.type(newTree.props) : null,
-        oldTree,
-        taskQueue,
-        idx,
-        hydrate
-      );
+      diff($parent, tree, oldTree, taskQueue, idx, hydrate);
     });
-    return "FUNC_COMP";
+    return ["FUNC_COMP", tree];
   }
 };
 
@@ -80,7 +74,7 @@ const childActions = {
  * @param {Array<Function>} taskQueue
  * @param {number?} idx Index of current container's child
  * @param {boolean?} hydrate
- * @returns {"INSERT"|"REMOVE"|"REPLACE"|"FUNC_COMP"|undefined}
+ * @returns {["INSERT"|"REMOVE"|"REPLACE"|"FUNC_COMP"|undefined, VNode]}
  */
 const diffElement = (
   $parent,
@@ -124,7 +118,7 @@ const diffElement = (
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
-    } else {
+    } else if (typeof newTree.type === "function") {
       return elementActions["FUNC_COMP"](
         $parent,
         newTree,
@@ -147,7 +141,7 @@ const diffElement = (
   ) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
-    } else {
+    } else if (typeof newTree.type === "function") {
       return elementActions["FUNC_COMP"](
         $parent,
         newTree,
@@ -158,6 +152,8 @@ const diffElement = (
       );
     }
   }
+
+  return [undefined, newTree];
 };
 
 /**
@@ -320,7 +316,7 @@ const diff = (
   idx = 0,
   hydrate = false
 ) => {
-  const status = diffElement(
+  let [status, tree] = diffElement(
     $parent,
     newTree,
     oldTree,
@@ -330,8 +326,8 @@ const diff = (
   );
 
   if (status !== "FUNC_COMP" && status !== "REMOVE") {
-    diffProps($parent, newTree, oldTree, taskQueue, idx, hydrate);
-    diffChildren($parent, newTree, oldTree, taskQueue, idx, hydrate);
+    diffProps($parent, tree, oldTree, taskQueue, idx, hydrate);
+    diffChildren($parent, tree, oldTree, taskQueue, idx, hydrate);
   }
 };
 

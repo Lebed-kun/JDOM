@@ -43,7 +43,9 @@ const App = (text, type = "") => {
   return app;
 };
 
-/*
+const App2 = ({ color, children }) =>
+  h("div", { style: `background: ${color};` }, ...children);
+
 render(App("JDOM"), root);
 
 const app2 = document.getElementById("app2");
@@ -51,4 +53,8 @@ app2.innerHTML =
   '<div style="border: 2px solid pink;"><h1>Hydrated DOM</h1><button>Click me</button></div>';
 
 hydrate(App("Hydrated DOM", "RENDER"), document.getElementById("app2"));
-*/
+
+render(
+  h(App2, { color: "purple" }, "Cute pie"),
+  document.getElementById("app3")
+);
