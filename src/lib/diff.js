@@ -1,6 +1,7 @@
 import { isEmpty, isText, isVElement, nodeType } from "./vnode";
 import { forEach, filter } from "./utils";
 import { setAttribute, removeAttribute } from "./props";
+import { cleanChild, cleanNode } from "./clean_node";
 
 /**
  * @typedef {import('./vnode').VNode} VNode
@@ -132,7 +133,9 @@ const diffProps = (
       const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
       forEach(evtHandlers, (value, name) => {
         taskQueue.push(() => {
-          console.log($parent);
+          // Clean DOM child to avoid text nodes with empty content
+          $parent = cleanNode($parent);
+          // ?
           setAttribute($parent.childNodes[idx], name, value);
         });
       });
@@ -160,7 +163,8 @@ const diffProps = (
       const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
       forEach(evtHandlers, (value, name) => {
         taskQueue.push(() => {
-          setAttribute($parent.childNodes[idx], name, value);
+          // Clean DOM child to avoid text nodes with empty content
+          setAttribute(cleanChild($parent, idx), name, value);
         });
       });
       return;
@@ -182,7 +186,8 @@ const diffProps = (
       const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
       forEach(evtHandlers, (value, name) => {
         taskQueue.push(() => {
-          setAttribute($parent.childNodes[idx], name, value);
+          // Clean DOM child to avoid text nodes with empty content
+          setAttribute(cleanChild($parent, idx), name, value);
         });
       });
       return;

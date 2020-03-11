@@ -25,7 +25,7 @@ const App = (text, type = "") => {
                 resetQueue();
                 diff(
                   root,
-                  App("JDOM with render", "RENDER"),
+                  App("JDOM after render", "RENDER"),
                   instance,
                   resolveQueue()
                 );
@@ -44,3 +44,4 @@ const App = (text, type = "") => {
 };
 
 render(App("JDOM"), root);
+hydrate(App("Hydrated DOM", "RENDER"), document.getElementById("app2"));
