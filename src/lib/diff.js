@@ -189,11 +189,7 @@ const diffProps = (
       return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
     }
 
-    if (typeof newTree.type === "string") {
-      return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
-    } else {
-      // TODO: add task for functional component
-    }
+    return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
   }
 
   // Compare trees
@@ -205,39 +201,32 @@ const diffProps = (
       return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
     }
 
-    if (typeof newTree.type === "string") {
-      return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
-    } else {
-      // TODO: add task for functional component
-    }
+    return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
   }
   if (newTreeType === "velement") {
     if (hydrate && typeof newTree.type === "string") {
       return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
     }
 
-    if (typeof newTree.type === "string") {
-      // Look for old props
-      forEach(oldProps, (_, name) => {
-        if (isEmpty(newProps[name]) && newProps[name] !== true) {
-          taskQueue.push(() => {
-            removeAttribute($parent.childNodes[idx], name);
-          });
-        }
-      });
+    // Look for old props
+    forEach(oldProps, (_, name) => {
+      if (isEmpty(newProps[name]) && newProps[name] !== true) {
+        taskQueue.push(() => {
+          removeAttribute($parent.childNodes[idx], name);
+        });
+      }
+    });
 
-      // Look for new props
-      forEach(newProps, (value, name) => {
-        if (value !== oldProps[name]) {
-          taskQueue.push(() => {
-            setAttribute($parent.childNodes[idx], name, value);
-          });
-        }
-      });
-      return;
-    } else {
-      // TODO: add task for functional component
-    }
+    // Look for new props
+    forEach(newProps, (value, name) => {
+      if (value !== oldProps[name]) {
+        taskQueue.push(() => {
+          setAttribute($parent.childNodes[idx], name, value);
+        });
+      }
+    });
+
+    return;
   }
 };
 
@@ -261,69 +250,57 @@ const diffChildren = (
   const oldChildren = isVElement(oldTree) ? oldTree.props.children : null;
 
   // Look for old tree
-  if (isEmpty(oldTree) && isVElement(newTree)) {
-    if (typeof newTree.type === "string" && newChildren) {
-      return childActions["ADD_CHILD"](
-        $parent,
-        newChildren,
-        taskQueue,
-        idx,
-        hydrate
-      );
-    } else {
-      // TODO : scheduling tasks for functional components
-    }
+  if (isEmpty(oldTree) && isVElement(newTree) && newChildren) {
+    return childActions["ADD_CHILD"](
+      $parent,
+      newChildren,
+      taskQueue,
+      idx,
+      hydrate
+    );
   }
 
   // Compare two trees
   const newTreeType = nodeType(newTree);
   const oldTreeType = nodeType(oldTree);
 
-  if (newTreeType !== oldTreeType && isVElement(newTree)) {
-    if (typeof newTree.type === "string" && newChildren) {
-      return childActions["ADD_CHILD"](
-        $parent,
-        newChildren,
-        taskQueue,
-        idx,
-        hydrate
-      );
-    } else {
-      // TODO : scheduling tasks for functional components
-    }
+  if (newTreeType !== oldTreeType && isVElement(newTree) && newChildren) {
+    return childActions["ADD_CHILD"](
+      $parent,
+      newChildren,
+      taskQueue,
+      idx,
+      hydrate
+    );
   }
-  if (newTreeType === "velement") {
-    if (typeof newTree.type === "string" && newChildren) {
-      // To compare pairs of existent nodes
-      const minChdCount = Math.min(
-        newChildren ? newChildren.length : 0,
-        oldChildren ? oldChildren.length : 0
-      );
-      // Look for old children
-      (oldChildren || []).forEach((el, id) => {
-        taskQueue.push(() => {
-          diff(
-            $parent.childNodes[idx],
-            newChildren[id],
-            el,
-            taskQueue,
-            id,
-            hydrate
-          );
-        });
+  if (newTreeType === "velement" && newChildren) {
+    // To compare pairs of existent nodes
+    const minChdCount = Math.min(
+      newChildren ? newChildren.length : 0,
+      oldChildren ? oldChildren.length : 0
+    );
+    // Look for old children
+    (oldChildren || []).forEach((el, id) => {
+      taskQueue.push(() => {
+        diff(
+          $parent.childNodes[idx],
+          newChildren[id],
+          el,
+          taskQueue,
+          id,
+          hydrate
+        );
       });
-      // Look for new children
-      (newChildren || []).forEach(
-        (el, id) =>
-          id >= minChdCount &&
-          taskQueue.push(() => {
-            diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
-          })
-      );
-      return;
-    } else {
-      // TODO : scheduling tasks for functional components
-    }
+    });
+    // Look for new children
+    (newChildren || []).forEach(
+      (el, id) =>
+        id >= minChdCount &&
+        taskQueue.push(() => {
+          diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
+        })
+    );
+    return;
   }
 };
 
