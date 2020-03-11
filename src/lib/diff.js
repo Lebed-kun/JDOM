@@ -29,6 +29,35 @@ const elementActions = {
   }
 };
 
+const propsActions = {
+  HYDRATE: ($parent, newProps, taskQueue, idx) => {
+    const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
+    forEach(evtHandlers, (value, name) => {
+      taskQueue.push(() => {
+        // Clean DOM child to avoid text nodes with empty content
+        setAttribute($parent.childNodes[idx], name, value);
+      });
+    });
+  },
+  ADD_PROPS: ($parent, newProps, taskQueue, idx) => {
+    forEach(newProps, (value, name) => {
+      taskQueue.push(() => {
+        setAttribute($parent.childNodes[idx], name, value);
+      });
+    });
+  }
+};
+
+const childActions = {
+  ADD_CHILD: ($parent, newChildren, taskQueue, idx, hydrate) => {
+    newChildren.forEach((el, id) => {
+      taskQueue.push(() => {
+        diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
+      });
+    });
+  }
+};
+
 /**
  * @typedef {import('./vnode').VNode} VNode
  *
@@ -130,22 +159,11 @@ const diffProps = (
   // Look for old tree
   if (isEmpty(oldTree) && isVElement(newTree)) {
     if (hydrate && typeof newTree.type === "string") {
-      const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
-      forEach(evtHandlers, (value, name) => {
-        taskQueue.push(() => {
-          setAttribute($parent.childNodes[idx], name, value);
-        });
-      });
-      return;
+      return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
     }
 
     if (typeof newTree.type === "string") {
-      forEach(newProps, (value, name) => {
-        taskQueue.push(() => {
-          setAttribute($parent.childNodes[idx], name, value);
-        });
-      });
-      return;
+      return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
     } else {
       // TODO: add task for functional component
     }
@@ -157,37 +175,18 @@ const diffProps = (
 
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (hydrate && typeof newTree.type === "string") {
-      const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
-      forEach(evtHandlers, (value, name) => {
-        taskQueue.push(() => {
-          // Clean DOM child to avoid text nodes with empty content
-          setAttribute($parent.childNodes[idx], name, value);
-        });
-      });
-      return;
+      return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
     }
 
     if (typeof newTree.type === "string") {
-      forEach(newProps, (value, name) => {
-        taskQueue.push(() => {
-          setAttribute($parent.childNodes[idx], name, value);
-        });
-      });
-      return;
+      return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
     } else {
       // TODO: add task for functional component
     }
   }
   if (newTreeType === "velement") {
     if (hydrate && typeof newTree.type === "string") {
-      const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
-      forEach(evtHandlers, (value, name) => {
-        taskQueue.push(() => {
-          // Clean DOM child to avoid text nodes with empty content
-          setAttribute($parent.childNodes[idx], name, value);
-        });
-      });
-      return;
+      return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
     }
 
     if (typeof newTree.type === "string") {
@@ -237,12 +236,13 @@ const diffChildren = (
   // Look for old tree
   if (isEmpty(oldTree) && isVElement(newTree)) {
     if (typeof newTree.type === "string" && newChildren) {
-      newChildren.forEach((el, id) => {
-        taskQueue.push(() => {
-          diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
-        });
-      });
-      return;
+      return childActions["ADD_CHILD"](
+        $parent,
+        newChildren,
+        taskQueue,
+        idx,
+        hydrate
+      );
     } else {
       // TODO : scheduling tasks for functional components
     }
@@ -254,12 +254,13 @@ const diffChildren = (
 
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (typeof newTree.type === "string" && newChildren) {
-      newChildren.forEach((el, id) => {
-        taskQueue.push(() => {
-          diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
-        });
-      });
-      return;
+      return childActions["ADD_CHILD"](
+        $parent,
+        newChildren,
+        taskQueue,
+        idx,
+        hydrate
+      );
     } else {
       // TODO : scheduling tasks for functional components
     }
