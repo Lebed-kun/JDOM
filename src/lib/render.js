@@ -24,7 +24,6 @@ export const render = (vnode, $container) => {
   if (!initBlocked) {
     initBlocked = true;
     commitWork();
-  } else {
     taskQueue.push(() => (initBlocked = false));
   }
 };

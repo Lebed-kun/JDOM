@@ -1,10 +1,15 @@
 import "./styles.css";
 
 import h from "./lib/vnode";
-import { render } from "./lib/render";
+import diff from "./lib/diff";
+import commitWork, { resolveQueue, resetQueue } from "./lib/commit_work";
+import { render, hydrate } from "./lib/render";
 
-const App = (text, type = "") =>
-  h(
+const root = document.getElementById("app");
+
+let instance;
+const App = (text, type = "") => {
+  const app = h(
     "div",
     { style: "border: 2px solid pink;" },
     h("h1", null, text),
@@ -14,23 +19,28 @@ const App = (text, type = "") =>
         onClick:
           type === "RENDER"
             ? () => {
-                render(
-                  App("JDOM after render effect"),
-                  document.getElementById("app4")
-                );
-                render(
-                  App("JDOM after render effect 2"),
-                  document.getElementById("app5")
-                );
+                alert("Hello");
               }
-            : () => alert("Hello")
+            : () => {
+                resetQueue();
+                diff(
+                  root,
+                  App("JDOM with render", "RENDER"),
+                  instance,
+                  resolveQueue()
+                );
+                commitWork();
+              }
       },
       "Click me"
     )
   );
 
-render(App("JDOM"), document.getElementById("app"));
-render(
-  App("JDOM with render effect", "RENDER"),
-  document.getElementById("app2")
-);
+  if (typeof instance === "undefined") {
+    instance = app;
+  }
+
+  return app;
+};
+
+render(App("JDOM"), root);

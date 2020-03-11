@@ -87,7 +87,10 @@ const diffElement = (
     });
     return "REPLACE";
   }
-  if (newTreeType === "velement" && newTree.type !== oldTree.type) {
+  if (
+    newTreeType === "velement" &&
+    (hydrate || newTree.type !== oldTree.type)
+  ) {
     if (!hydrate && typeof newTree.type === "string") {
       taskQueue.push(() => {
         const newElement = document.createElement(newTree.type);
@@ -129,6 +132,7 @@ const diffProps = (
       const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
       forEach(evtHandlers, (value, name) => {
         taskQueue.push(() => {
+          console.log($parent);
           setAttribute($parent.childNodes[idx], name, value);
         });
       });
