@@ -13,11 +13,12 @@ export const initUnblock = () => (initBlocked = false);
  *
  * @param {VNode} vnode
  * @param {Element} $container
+ * @param {VNode} oldNode
  * @param {boolean?} hydrate
  */
-export const render = (vnode, $container, hydrate = false) => {
+export const render = (vnode, $container, oldNode = null, hydrate = false) => {
   const taskQueue = resolveQueue();
-  diff($container, vnode, null, taskQueue, 0, hydrate);
+  diff($container, vnode, oldNode, taskQueue, 0, hydrate);
 
   if (!initBlocked) {
     initBlocked = true;
@@ -30,4 +31,5 @@ export const render = (vnode, $container, hydrate = false) => {
  * @param {VNode} vnode
  * @param {Element} $container
  */
-export const hydrate = (vnode, $container) => render(vnode, $container, true);
+export const hydrate = (vnode, $container) =>
+  render(vnode, $container, null, true);

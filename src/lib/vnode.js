@@ -11,7 +11,7 @@ import { filter } from "./utils";
  * @typedef {undefined|null|boolean} Empty
  * @typedef {VElement|Text|Empty} VNode
  *
- * @param {string|(props : object?, ref : object?) => VElement} type
+ * @param {string|(props : object?, ref : object?) => VNode} type
  * @param {object?} attrs
  * @param  {...any?} children
  * @returns {VElement}
@@ -25,7 +25,9 @@ const h = (type, attrs, ...children) => {
 
   if (typeof type === "function") {
     const tree = type(normProps, attrs && attrs.ref ? attrs.ref : null);
-    tree.key = attrs && attrs.key ? attrs.key : null;
+    if (isVElement(tree)) {
+      tree.key = attrs && attrs.key ? attrs.key : null;
+    }
     return tree;
   }
 
