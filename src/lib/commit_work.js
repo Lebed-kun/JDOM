@@ -1,7 +1,9 @@
+import { initUnblock } from "./render";
+
 let taskQueue = [];
 
 export const resolveQueue = () => taskQueue;
-export const resetQueue = () => (taskQueue = []);
+const resetQueue = () => (taskQueue = []);
 
 const commitWork = () => {
   let i = 0;
@@ -9,6 +11,10 @@ const commitWork = () => {
   const performTask = () => {
     taskQueue[i]();
     if (++i < taskQueue.length) setTimeout(performTask);
+    else {
+      initUnblock();
+      resetQueue();
+    }
   };
 
   setTimeout(performTask);

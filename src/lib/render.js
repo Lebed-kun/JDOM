@@ -1,5 +1,5 @@
 import diff from "./diff";
-import commitWork, { resetQueue, resolveQueue } from "./commit_work";
+import commitWork, { resolveQueue } from "./commit_work";
 
 /**
  * @typedef {import('./vnode').VNode} VNode
@@ -7,6 +7,7 @@ import commitWork, { resetQueue, resolveQueue } from "./commit_work";
 
 // Flag that blocks initializing work loop after 1st render
 let initBlocked = false;
+export const initUnblock = () => (initBlocked = false);
 
 /**
  *
@@ -15,17 +16,12 @@ let initBlocked = false;
  * @param {boolean?} hydrate
  */
 export const render = (vnode, $container, hydrate = false) => {
-  if (!initBlocked) {
-    resetQueue();
-  }
-
   const taskQueue = resolveQueue();
   diff($container, vnode, null, taskQueue, 0, hydrate);
 
   if (!initBlocked) {
     initBlocked = true;
-    commitWork();
-    taskQueue.push(() => (initBlocked = false));
+    commitWork(); // Starts work loop
   }
 };
 
