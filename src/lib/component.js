@@ -9,6 +9,8 @@ class Component {
   constructor(props) {
     this.props = props || {};
     this.state = {};
+    this._dom = null;
+    this._tree = null;
   }
 
   /**
@@ -20,7 +22,9 @@ class Component {
     } else {
       this.state = newState(this.state);
     }
-    // Rerender component
+    // Rerender component like:
+    // render(this.render(), this._dom, this._tree)
+    // Then set current component's tree to new rendered tree
   }
 
   /**
