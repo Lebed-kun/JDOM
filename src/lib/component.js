@@ -1,7 +1,16 @@
+import { isEmpty } from "./vnode";
+
 /**
  * @typedef {import('./vnode').VNode} VNode
  */
 
+/**
+ * @class [Component Component]
+ * @property {object} props
+ * @property {object} state
+ * @property {Element} _dom Container DOM node
+ * @property {VNode} _tree
+ */
 class Component {
   /**
    * @param {object?} props
@@ -34,3 +43,11 @@ class Component {
     // Return element tree
   }
 }
+
+/**
+ *
+ * @param {VNode} value
+ * @returns {value is Component}
+ */
+export const isClassCompNode = value =>
+  !isEmpty(value) && value.type.prototype === Component;

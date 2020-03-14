@@ -1,6 +1,7 @@
 import { isEmpty, isText, isVElement, nodeType } from "./vnode";
 import { forEach, filter } from "./utils";
 import { setAttribute, removeAttribute } from "./props";
+import { isClassCompNode } from "./component";
 
 const elementActions = {
   INSERT: ($parent, newTree, taskQueue, idx = 0) => {
@@ -38,7 +39,7 @@ const elementActions = {
     taskQueue.push(() => {
       diff(
         $parent,
-        newTree.type(newTree.props),
+        newTree.type(newTree.props, newTree.ref),
         oldTree,
         taskQueue,
         idx,
@@ -46,7 +47,15 @@ const elementActions = {
       );
     });
     return "FUNC_COMP";
-  }
+  },
+  CLASS_COMP: (
+    $parent,
+    newTree,
+    oldTree,
+    taskQueue,
+    idx = 0,
+    hydrate = false
+  ) => {}
 };
 
 const propsActions = {
@@ -104,6 +113,15 @@ const diffElement = (
   if (isEmpty(oldTree) && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["INSERT"]($parent, newTree, taskQueue, idx);
+    } else if (isClassCompNode(newTree)) {
+      return elementActions["CLASS_COMP"](
+        $parent,
+        newTree,
+        oldTree,
+        taskQueue,
+        idx,
+        hydrate
+      );
     } else if (typeof newTree.type === "function") {
       return elementActions["FUNC_COMP"](
         $parent,
@@ -131,6 +149,15 @@ const diffElement = (
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
+    } else if (isClassCompNode(newTree)) {
+      return elementActions["CLASS_COMP"](
+        $parent,
+        newTree,
+        oldTree,
+        taskQueue,
+        idx,
+        hydrate
+      );
     } else if (typeof newTree.type === "function") {
       return elementActions["FUNC_COMP"](
         $parent,
@@ -154,6 +181,15 @@ const diffElement = (
   ) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
+    } else if (isClassCompNode(newTree)) {
+      return elementActions["CLASS_COMP"](
+        $parent,
+        newTree,
+        oldTree,
+        taskQueue,
+        idx,
+        hydrate
+      );
     } else if (typeof newTree.type === "function") {
       return elementActions["FUNC_COMP"](
         $parent,
