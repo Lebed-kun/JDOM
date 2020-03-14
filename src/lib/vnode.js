@@ -2,7 +2,7 @@ import { filter } from "./utils";
 
 /**
  * @typedef {object} VElement
- * @property {string} type
+ * @property {string|Function} type
  * @property {object} props
  * @property {number|string|symbol?} key
  * @property {object} ref
@@ -22,14 +22,6 @@ const h = (type, attrs, ...children) => {
     : {};
 
   if (children && children.length) normProps.children = children;
-
-  if (typeof type === "function") {
-    const tree = type(normProps, attrs && attrs.ref ? attrs.ref : null);
-    if (isVElement(tree)) {
-      tree.key = attrs && attrs.key ? attrs.key : null;
-    }
-    return tree;
-  }
 
   return {
     type,

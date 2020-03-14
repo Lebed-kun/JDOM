@@ -26,6 +26,26 @@ const elementActions = {
       $parent.replaceChild(newElement, $parent.childNodes[idx]);
     });
     return "REPLACE";
+  },
+  FUNC_COMP: (
+    $parent,
+    newTree,
+    oldTree,
+    taskQueue,
+    idx = 0,
+    hydrate = false
+  ) => {
+    taskQueue.push(() => {
+      diff(
+        $parent,
+        newTree.type(newTree.props),
+        oldTree,
+        taskQueue,
+        idx,
+        hydrate
+      );
+    });
+    return "FUNC_COMP";
   }
 };
 
@@ -84,6 +104,15 @@ const diffElement = (
   if (isEmpty(oldTree) && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["INSERT"]($parent, newTree, taskQueue, idx);
+    } else if (typeof newTree.type === "function") {
+      return elementActions["FUNC_COMP"](
+        $parent,
+        newTree,
+        oldTree,
+        taskQueue,
+        idx,
+        hydrate
+      );
     }
   }
 
@@ -102,6 +131,15 @@ const diffElement = (
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
+    } else if (typeof newTree.type === "function") {
+      return elementActions["FUNC_COMP"](
+        $parent,
+        newTree,
+        oldTree,
+        taskQueue,
+        idx,
+        hydrate
+      );
     }
   }
   if (!hydrate && newTreeType === "text" && newTree !== oldTree) {
@@ -116,6 +154,15 @@ const diffElement = (
   ) {
     if (!hydrate && typeof newTree.type === "string") {
       return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
+    } else if (typeof newTree.type === "function") {
+      return elementActions["FUNC_COMP"](
+        $parent,
+        newTree,
+        oldTree,
+        taskQueue,
+        idx,
+        hydrate
+      );
     }
   }
 
@@ -282,9 +329,16 @@ const diff = (
   idx = 0,
   hydrate = false
 ) => {
-  let status = diffElement($parent, newTree, oldTree, taskQueue, idx, hydrate);
+  const status = diffElement(
+    $parent,
+    newTree,
+    oldTree,
+    taskQueue,
+    idx,
+    hydrate
+  );
 
-  if (status !== "REMOVE") {
+  if (status !== "FUNC_COMP" && status !== "REMOVE") {
     diffProps($parent, newTree, oldTree, taskQueue, idx, hydrate);
     diffChildren($parent, newTree, oldTree, taskQueue, idx, hydrate);
   }
