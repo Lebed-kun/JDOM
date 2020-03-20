@@ -4,8 +4,8 @@ import { setAttribute, removeAttribute } from "./props";
 import { isClassCompNode } from "./component";
 
 const elementActions = {
-  INSERT: ($parent, newTree, taskQueue, idx = 0) => {
-    taskQueue.push(() => {
+  INSERT: ($parent, newTree, idx = 0) => {
+    setTimeout(() => {
       const newElement = isText(newTree)
         ? document.createTextNode(newTree)
         : document.createElement(newTree.type);
@@ -13,14 +13,14 @@ const elementActions = {
     });
     return "INSERT";
   },
-  REMOVE: ($parent, taskQueue, idx = 0) => {
-    taskQueue.push(() => {
+  REMOVE: ($parent, idx = 0) => {
+    setTimeout(() => {
       $parent.removeChild($parent.childNodes[idx]);
     });
     return "REMOVE";
   },
-  REPLACE: ($parent, newTree, taskQueue, idx = 0) => {
-    taskQueue.push(() => {
+  REPLACE: ($parent, newTree, idx = 0) => {
+    setTimeout(() => {
       const newElement = isText(newTree)
         ? document.createTextNode(newTree)
         : document.createElement(newTree.type);
@@ -28,49 +28,34 @@ const elementActions = {
     });
     return "REPLACE";
   },
-  FUNC_COMP: (
-    $parent,
-    newTree,
-    oldTree,
-    taskQueue,
-    idx = 0,
-    hydrate = false
-  ) => {
-    taskQueue.push(() => {
+  FUNC_COMP: ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
+    setTimeout(() => {
       diff(
         $parent,
         newTree.type(newTree.props, newTree.ref),
         oldTree,
-        taskQueue,
         idx,
         hydrate
       );
     });
     return "FUNC_COMP";
   },
-  CLASS_COMP: (
-    $parent,
-    newTree,
-    oldTree,
-    taskQueue,
-    idx = 0,
-    hydrate = false
-  ) => {}
+  CLASS_COMP: ($parent, newTree, oldTree, idx = 0, hydrate = false) => {}
 };
 
 const propsActions = {
-  HYDRATE: ($parent, newProps, taskQueue, idx) => {
+  HYDRATE: ($parent, newProps, idx) => {
     const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
     forEach(evtHandlers, (value, name) => {
-      taskQueue.push(() => {
+      setTimeout(() => {
         // Clean DOM child to avoid text nodes with empty content
         setAttribute($parent.childNodes[idx], name, value);
       });
     });
   },
-  ADD_PROPS: ($parent, newProps, taskQueue, idx) => {
+  ADD_PROPS: ($parent, newProps, idx) => {
     forEach(newProps, (value, name) => {
-      taskQueue.push(() => {
+      setTimeout(() => {
         setAttribute($parent.childNodes[idx], name, value);
       });
     });
@@ -78,10 +63,10 @@ const propsActions = {
 };
 
 const childActions = {
-  ADD_CHILD: ($parent, newChildren, taskQueue, idx, hydrate) => {
+  ADD_CHILD: ($parent, newChildren, idx, hydrate) => {
     newChildren.forEach((el, id) => {
-      taskQueue.push(() => {
-        diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
+      setTimeout(() => {
+        diff($parent.childNodes[idx], el, null, id, hydrate);
       });
     });
   }
@@ -93,32 +78,23 @@ const childActions = {
  * @param {Node} $parent Container DOM
  * @param {VNode} newTree
  * @param {VNode} oldTree
- * @param {Array<Function>} taskQueue
  * @param {number?} idx Index of current container's child
  * @param {boolean?} hydrate
  * @returns {["INSERT"|"REMOVE"|"REPLACE"|"FUNC_COMP"|undefined, VNode]}
  */
-const diffElement = (
-  $parent,
-  newTree,
-  oldTree,
-  taskQueue,
-  idx = 0,
-  hydrate = false
-) => {
+const diffElement = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
   // Look for old tree
   if (!hydrate && isEmpty(oldTree) && isText(newTree)) {
-    return elementActions["INSERT"]($parent, newTree, taskQueue, idx);
+    return elementActions["INSERT"]($parent, newTree, idx);
   }
   if (isEmpty(oldTree) && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
-      return elementActions["INSERT"]($parent, newTree, taskQueue, idx);
+      return elementActions["INSERT"]($parent, newTree, idx);
     } else if (isClassCompNode(newTree)) {
       return elementActions["CLASS_COMP"](
         $parent,
         newTree,
         oldTree,
-        taskQueue,
         idx,
         hydrate
       );
@@ -127,7 +103,6 @@ const diffElement = (
         $parent,
         newTree,
         oldTree,
-        taskQueue,
         idx,
         hydrate
       );
@@ -136,7 +111,7 @@ const diffElement = (
 
   // Look for new tree
   if (isEmpty(newTree) && !isEmpty(oldTree)) {
-    return elementActions["REMOVE"]($parent, taskQueue, idx);
+    return elementActions["REMOVE"]($parent, idx);
   }
 
   // Compare two trees
@@ -144,17 +119,16 @@ const diffElement = (
   const oldTreeType = nodeType(oldTree);
 
   if (!hydrate && newTreeType !== oldTreeType && isText(newTree)) {
-    return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
+    return elementActions["REPLACE"]($parent, newTree, idx);
   }
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (!hydrate && typeof newTree.type === "string") {
-      return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
+      return elementActions["REPLACE"]($parent, newTree, idx);
     } else if (isClassCompNode(newTree)) {
       return elementActions["CLASS_COMP"](
         $parent,
         newTree,
         oldTree,
-        taskQueue,
         idx,
         hydrate
       );
@@ -163,14 +137,13 @@ const diffElement = (
         $parent,
         newTree,
         oldTree,
-        taskQueue,
         idx,
         hydrate
       );
     }
   }
   if (!hydrate && newTreeType === "text" && newTree !== oldTree) {
-    taskQueue.push(() => {
+    setTimeout(() => {
       $parent.childNodes[idx].nodeValue = newTree;
     });
     return "REPLACE";
@@ -180,13 +153,12 @@ const diffElement = (
     (hydrate || newTree.type !== oldTree.type)
   ) {
     if (!hydrate && typeof newTree.type === "string") {
-      return elementActions["REPLACE"]($parent, newTree, taskQueue, idx);
+      return elementActions["REPLACE"]($parent, newTree, idx);
     } else if (isClassCompNode(newTree)) {
       return elementActions["CLASS_COMP"](
         $parent,
         newTree,
         oldTree,
-        taskQueue,
         idx,
         hydrate
       );
@@ -195,7 +167,6 @@ const diffElement = (
         $parent,
         newTree,
         oldTree,
-        taskQueue,
         idx,
         hydrate
       );
@@ -209,18 +180,10 @@ const diffElement = (
  * @param {Node} $parent Container DOM
  * @param {VNode} newTree
  * @param {VNode} oldTree
- * @param {Array<Function>} taskQueue
  * @param {number?} idx Index of current container's child
  * @param {boolean?} hydrate
  */
-const diffProps = (
-  $parent,
-  newTree,
-  oldTree,
-  taskQueue,
-  idx = 0,
-  hydrate = false
-) => {
+const diffProps = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
   const newProps = isVElement(newTree)
     ? filter(newTree.props, (_, name) => name !== "children")
     : null;
@@ -231,10 +194,10 @@ const diffProps = (
   // Look for old tree
   if (isEmpty(oldTree) && isVElement(newTree)) {
     if (hydrate && typeof newTree.type === "string") {
-      return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
+      return propsActions["HYDRATE"]($parent, newProps, idx);
     }
 
-    return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
+    return propsActions["ADD_PROPS"]($parent, newProps, idx);
   }
 
   // Compare trees
@@ -243,20 +206,20 @@ const diffProps = (
 
   if (newTreeType !== oldTreeType && isVElement(newTree)) {
     if (hydrate && typeof newTree.type === "string") {
-      return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
+      return propsActions["HYDRATE"]($parent, newProps, idx);
     }
 
-    return propsActions["ADD_PROPS"]($parent, newProps, taskQueue, idx);
+    return propsActions["ADD_PROPS"]($parent, newProps, idx);
   }
   if (newTreeType === "velement") {
     if (hydrate && typeof newTree.type === "string") {
-      return propsActions["HYDRATE"]($parent, newProps, taskQueue, idx);
+      return propsActions["HYDRATE"]($parent, newProps, idx);
     }
 
     // Look for old props
     forEach(oldProps, (_, name) => {
       if (isEmpty(newProps[name]) && newProps[name] !== true) {
-        taskQueue.push(() => {
+        setTimeout(() => {
           removeAttribute($parent.childNodes[idx], name);
         });
       }
@@ -265,7 +228,7 @@ const diffProps = (
     // Look for new props
     forEach(newProps, (value, name) => {
       if (value !== oldProps[name]) {
-        taskQueue.push(() => {
+        setTimeout(() => {
           setAttribute($parent.childNodes[idx], name, value);
         });
       }
@@ -279,30 +242,16 @@ const diffProps = (
  * @param {Node} $parent
  * @param {VNode} newTree
  * @param {VNode} oldTree
- * @param {Array<Function>} taskQueue
  * @param {number?} idx
  * @param {boolean?} hydrate
  */
-const diffChildren = (
-  $parent,
-  newTree,
-  oldTree,
-  taskQueue,
-  idx = 0,
-  hydrate = false
-) => {
+const diffChildren = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
   const newChildren = isVElement(newTree) ? newTree.props.children : null;
   const oldChildren = isVElement(oldTree) ? oldTree.props.children : null;
 
   // Look for old tree
   if (isEmpty(oldTree) && isVElement(newTree) && newChildren) {
-    return childActions["ADD_CHILD"](
-      $parent,
-      newChildren,
-      taskQueue,
-      idx,
-      hydrate
-    );
+    return childActions["ADD_CHILD"]($parent, newChildren, idx, hydrate);
   }
 
   // Compare two trees
@@ -310,13 +259,7 @@ const diffChildren = (
   const oldTreeType = nodeType(oldTree);
 
   if (newTreeType !== oldTreeType && isVElement(newTree) && newChildren) {
-    return childActions["ADD_CHILD"](
-      $parent,
-      newChildren,
-      taskQueue,
-      idx,
-      hydrate
-    );
+    return childActions["ADD_CHILD"]($parent, newChildren, idx, hydrate);
   }
   if (newTreeType === "velement" && newChildren) {
     // To compare pairs of existent nodes
@@ -326,23 +269,16 @@ const diffChildren = (
     );
     // Look for old children
     (oldChildren || []).forEach((el, id) => {
-      taskQueue.push(() => {
-        diff(
-          $parent.childNodes[idx],
-          newChildren[id],
-          el,
-          taskQueue,
-          id,
-          hydrate
-        );
+      setTimeout(() => {
+        diff($parent.childNodes[idx], newChildren[id], el, id, hydrate);
       });
     });
     // Look for new children
     (newChildren || []).forEach(
       (el, id) =>
         id >= minChdCount &&
-        taskQueue.push(() => {
-          diff($parent.childNodes[idx], el, null, taskQueue, id, hydrate);
+        setTimeout(() => {
+          diff($parent.childNodes[idx], el, null, id, hydrate);
         })
     );
     return;
@@ -357,26 +293,12 @@ const diffChildren = (
  * @param {number?} idx
  * @param {boolean?} hydrate
  */
-const diff = (
-  $parent,
-  newTree,
-  oldTree,
-  taskQueue,
-  idx = 0,
-  hydrate = false
-) => {
-  const status = diffElement(
-    $parent,
-    newTree,
-    oldTree,
-    taskQueue,
-    idx,
-    hydrate
-  );
+const diff = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
+  const status = diffElement($parent, newTree, oldTree, idx, hydrate);
 
   if (status !== "FUNC_COMP" && status !== "REMOVE") {
-    diffProps($parent, newTree, oldTree, taskQueue, idx, hydrate);
-    diffChildren($parent, newTree, oldTree, taskQueue, idx, hydrate);
+    diffProps($parent, newTree, oldTree, idx, hydrate);
+    diffChildren($parent, newTree, oldTree, idx, hydrate);
   }
 
   return newTree;

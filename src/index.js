@@ -55,4 +55,4 @@ const run = () => {
   render(App("JDOM", "RENDER"), app3);
 };
 
-// run();
+run();
