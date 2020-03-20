@@ -1,11 +1,11 @@
 import { isEmpty, isText, isVElement, nodeType } from "./vnode";
-import { forEach, filter } from "./utils";
+import { forEach, filter, commitWork } from "./utils";
 import { setAttribute, removeAttribute } from "./props";
 import { isClassCompNode } from "./component";
 
 const elementActions = {
   INSERT: ($parent, newTree, idx = 0) => {
-    setTimeout(() => {
+    commitWork(() => {
       const newElement = isText(newTree)
         ? document.createTextNode(newTree)
         : document.createElement(newTree.type);
@@ -14,13 +14,13 @@ const elementActions = {
     return "INSERT";
   },
   REMOVE: ($parent, idx = 0) => {
-    setTimeout(() => {
+    commitWork(() => {
       $parent.removeChild($parent.childNodes[idx]);
     });
     return "REMOVE";
   },
   REPLACE: ($parent, newTree, idx = 0) => {
-    setTimeout(() => {
+    commitWork(() => {
       const newElement = isText(newTree)
         ? document.createTextNode(newTree)
         : document.createElement(newTree.type);
@@ -29,7 +29,7 @@ const elementActions = {
     return "REPLACE";
   },
   FUNC_COMP: ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
-    setTimeout(() => {
+    commitWork(() => {
       diff(
         $parent,
         newTree.type(newTree.props, newTree.ref),
@@ -47,7 +47,7 @@ const propsActions = {
   HYDRATE: ($parent, newProps, idx) => {
     const evtHandlers = filter(newProps, (_, name) => /^on/.test(name));
     forEach(evtHandlers, (value, name) => {
-      setTimeout(() => {
+      commitWork(() => {
         // Clean DOM child to avoid text nodes with empty content
         setAttribute($parent.childNodes[idx], name, value);
       });
@@ -55,7 +55,7 @@ const propsActions = {
   },
   ADD_PROPS: ($parent, newProps, idx) => {
     forEach(newProps, (value, name) => {
-      setTimeout(() => {
+      commitWork(() => {
         setAttribute($parent.childNodes[idx], name, value);
       });
     });
@@ -65,7 +65,7 @@ const propsActions = {
 const childActions = {
   ADD_CHILD: ($parent, newChildren, idx, hydrate) => {
     newChildren.forEach((el, id) => {
-      setTimeout(() => {
+      commitWork(() => {
         diff($parent.childNodes[idx], el, null, id, hydrate);
       });
     });
@@ -143,7 +143,7 @@ const diffElement = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
     }
   }
   if (!hydrate && newTreeType === "text" && newTree !== oldTree) {
-    setTimeout(() => {
+    commitWork(() => {
       $parent.childNodes[idx].nodeValue = newTree;
     });
     return "REPLACE";
@@ -219,7 +219,7 @@ const diffProps = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
     // Look for old props
     forEach(oldProps, (_, name) => {
       if (isEmpty(newProps[name]) && newProps[name] !== true) {
-        setTimeout(() => {
+        commitWork(() => {
           removeAttribute($parent.childNodes[idx], name);
         });
       }
@@ -228,7 +228,7 @@ const diffProps = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
     // Look for new props
     forEach(newProps, (value, name) => {
       if (value !== oldProps[name]) {
-        setTimeout(() => {
+        commitWork(() => {
           setAttribute($parent.childNodes[idx], name, value);
         });
       }
@@ -269,7 +269,7 @@ const diffChildren = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
     );
     // Look for old children
     (oldChildren || []).forEach((el, id) => {
-      setTimeout(() => {
+      commitWork(() => {
         diff($parent.childNodes[idx], newChildren[id], el, id, hydrate);
       });
     });
@@ -277,7 +277,7 @@ const diffChildren = ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
     (newChildren || []).forEach(
       (el, id) =>
         id >= minChdCount &&
-        setTimeout(() => {
+        commitWork(() => {
           diff($parent.childNodes[idx], el, null, id, hydrate);
         })
     );

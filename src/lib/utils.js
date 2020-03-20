@@ -22,3 +22,9 @@ export const forEach = (obj, func) => {
     func(obj[key], key, obj);
   }
 };
+
+/**
+ *
+ * @param {Function} callback
+ */
+export const commitWork = callback => Promise.resolve().then(callback);
