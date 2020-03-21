@@ -1,11 +1,16 @@
 import { filter } from "./utils";
 
 /**
+ * @typedef {import('./component').Component} Component
+ */
+
+/**
  * @typedef {object} VElement
  * @property {string|Function} type
  * @property {object} props
  * @property {number|string|symbol?} key
  * @property {object} ref
+ * @property {Component} _component
  *
  * @typedef {string|number} Text
  * @typedef {undefined|null|boolean} Empty
