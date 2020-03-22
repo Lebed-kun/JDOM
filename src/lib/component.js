@@ -1,4 +1,5 @@
 import { isEmpty } from "./vnode";
+import { render } from "./render";
 
 /**
  * @typedef {import('./vnode').VNode} VNode
@@ -31,6 +32,7 @@ class Component {
     } else {
       this.state = newState(this.state);
     }
+    render(this.render(), this._parent, this._tree);
     // Rerender component like:
     // render(this.render(), this._parent, this._tree)
     // Then set current component's tree to new rendered tree

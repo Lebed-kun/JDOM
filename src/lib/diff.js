@@ -40,7 +40,24 @@ const elementActions = {
     });
     return "FUNC_COMP";
   },
-  CLASS_COMP: ($parent, newTree, oldTree, idx = 0, hydrate = false) => {}
+  CLASS_COMP: ($parent, newTree, oldTree, idx = 0, hydrate = false) => {
+    let component;
+
+    if (
+      !isVElement(oldTree) ||
+      !oldTree._component ||
+      newTree.type !== oldTree._component.constructor
+    ) {
+      component = new newTree.type(newTree.props, newTree.ref);
+      component._parent = $parent;
+    } else {
+      component = oldTree._component;
+      component.props = newTree.props;
+    }
+    component._tree = component.render();
+    component._tree._component = component;
+    commitWork(() => diff($parent, component._tree, oldTree, idx, hydrate));
+  }
 };
 
 const propsActions = {
