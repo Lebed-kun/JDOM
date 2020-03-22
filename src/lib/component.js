@@ -8,7 +8,7 @@ import { isEmpty } from "./vnode";
  * @class [Component Component]
  * @property {object} props
  * @property {object} state
- * @property {Element} _dom Container DOM node
+ * @property {Element} _parent Container DOM node
  * @property {VNode} _tree
  */
 class Component {
@@ -18,7 +18,7 @@ class Component {
   constructor(props) {
     this.props = props || {};
     this.state = {};
-    this._dom = null;
+    this._parent = null;
     this._tree = null;
   }
 
@@ -32,7 +32,7 @@ class Component {
       this.state = newState(this.state);
     }
     // Rerender component like:
-    // render(this.render(), this._dom, this._tree)
+    // render(this.render(), this._parent, this._tree)
     // Then set current component's tree to new rendered tree
   }
 
